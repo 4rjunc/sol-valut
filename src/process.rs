@@ -9,7 +9,7 @@ use solana_program::{
 use crate::instruct::*;
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
-pub enum NativeVaultInstruction {
+pub enum SOLVaultInstruction {
     Initialize,
     Deposit { amount: u64 },
     PartialWithdraw,
@@ -21,19 +21,19 @@ pub fn process_instruction(
     instruction_data: &[u8],
 ) -> ProgramResult {
     msg!("Beginning process_instruction");
-    let instruction = NativeVaultInstruction::try_from_slice(instruction_data)?;
+    let instruction = SOLVaultInstruction::try_from_slice(instruction_data)?;
     msg!("Instruction unpacked");
 
     match instruction {
-        NativeVaultInstruction::Initialize => {
+        SOLVaultInstruction::Initialize => {
             msg!("Instruction: Initialize");
             initialize(program_id, accounts)
         }
-        NativeVaultInstruction::Deposit { amount } => {
+        SOLVaultInstruction::Deposit { amount } => {
             msg!("Instruction: Deposit");
             deposit(program_id, accounts, amount)
         }
-        NativeVaultInstruction::PartialWithdraw => {
+        SOLVaultInstruction::PartialWithdraw => {
             msg!("Instruction: PartialWithdraw");
             partial_withdraw(program_id, accounts)
         }

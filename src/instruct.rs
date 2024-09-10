@@ -7,7 +7,7 @@ use solana_program::{
     pubkey::Pubkey,
     rent::Rent,
     system_instruction,
-    sysvar::{clock::Clock, Sysvar},
+    sysvar::Sysvar,
     msg,
 };
 
@@ -20,11 +20,9 @@ pub struct Vault {
 pub struct Pda {
     pub signer: Pubkey,
     pub balance: u64,
-    pub deposit_time: i64,
     pub done: bool,
 }
 
-pub const DELAY: i64 = 10;
 pub const TAG_SOL_VAULT: &[u8; 9] = b"SOL_VAULT";
 
 pub fn initialize(
@@ -80,7 +78,7 @@ pub fn deposit(
     );
 
     if user_pda.key != &computed_pda {
-        return Err(ProgramError::InvalidAccountData);
+        return Err(ProgramError::InvalidAccountOwner);
     }
 
     if user_pda.data_is_empty() {
@@ -100,10 +98,9 @@ pub fn deposit(
             &[&[TAG_SOL_VAULT, user.key.as_ref(), &[bump_seed]]],
         )?;
 
-        let mut pda_data = Pda {
+        let pda_data = Pda {
             signer: *user.key,
             balance: 0,
-            deposit_time: 0,
             done: false,
         };
         pda_data.serialize(&mut &mut user_pda.data.borrow_mut()[..])?;
@@ -112,15 +109,13 @@ pub fn deposit(
     msg!("Updating PDA data");
     let mut pda_data = Pda::try_from_slice(&user_pda.data.borrow())?;
     if pda_data.done {
-        return Err(ProgramError::AccountDataTooSmall);
+        return Err(ProgramError::InvalidAccountOwner);
     }
     if pda_data.signer != *user.key {
         return Err(ProgramError::IllegalOwner);
     }
 
     pda_data.balance = pda_data.balance.checked_add(amount).ok_or(ProgramError::ArithmeticOverflow)?;
-    let clock = Clock::get()?;
-    pda_data.deposit_time = clock.unix_timestamp;
     pda_data.serialize(&mut &mut user_pda.data.borrow_mut()[..])?;
 
     msg!("Transferring SOL to PDA");
@@ -159,14 +154,9 @@ pub fn partial_withdraw(
         return Err(ProgramError::IllegalOwner);
     }
     if pda_data.done {
-        return Err(ProgramError::AccountDataTooSmall);
+        return Err(ProgramError::InvalidAccountOwner);
     }
 
-    let clock = Clock::get()?;
-    let time_elapsed = clock.unix_timestamp - pda_data.deposit_time;
-    if time_elapsed < DELAY {
-        return Err(ProgramError::Custom(0));
-    }
 
     msg!("Calculating withdrawal amount");
     let withdrawal_amount = pda_data.balance.checked_div(10).ok_or(ProgramError::ArithmeticOverflow)?;
