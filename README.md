@@ -74,6 +74,7 @@ Let's break this down:
 3. `pub enum NativeVaultInstruction`: This defines an enumeration of the possible instructions that this program can handle: Initialize, Deposit, and PartialWithdraw.
 
 4. `pub fn process_instruction`: This is the main entry point of the program. It takes three parameters:
+
    - `program_id`: The public key of the program.
    - `accounts`: A slice of `AccountInfo` structures, representing the accounts involved in the transaction.
    - `input`: A byte slice containing the instruction data.
@@ -109,8 +110,8 @@ pub struct Vault {
 pub struct Pda {
     pub signer      : Pubkey,
     pub balance     : u64,
-    pub deposit_time: i64,      
-    pub done        : bool,     
+    pub deposit_time: i64,
+    pub done        : bool,
 }
 
 pub const DELAY: i64 = 10;
@@ -131,6 +132,7 @@ pub fn initialize(
 ```
 
 This function initializes a new vault. It:
+
 1. Extracts necessary accounts from the `accounts` slice.
 2. Calculates the minimum rent required for the vault account.
 3. Creates a new account for the vault.
@@ -149,6 +151,7 @@ pub fn deposit(
 ```
 
 This function handles depositing SOL into a Program Derived Address (PDA). It:
+
 1. Extracts necessary accounts.
 2. Derives the PDA.
 3. Initializes the PDA if it's new.
@@ -167,6 +170,7 @@ pub fn partial_withdraw(
 ```
 
 This function handles partial withdrawal from the PDA. It:
+
 1. Extracts necessary accounts.
 2. Derives the PDA.
 3. Checks if enough time has passed since the deposit.
