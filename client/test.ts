@@ -84,7 +84,9 @@ async function main() {
   });
 
   const initializeTx = new Transaction().add(ixInitialize);
+
   try {
+    console.log("sendAndConfirmTransaction");
     const txHash = await sendAndConfirmTransaction(connection, initializeTx, [
       payer,
       newVault,
@@ -93,6 +95,65 @@ async function main() {
   } catch (error) {
     console.error("Error in initialize transaction:", error);
     return;
+  }
+
+  // Deposit
+  const [depositPda] = await PublicKey.findProgramAddress(
+    [Buffer.from(TAG_SOL_VAULT), payer.publicKey.toBuffer()],
+    PROGRAM_ID
+  );
+
+  const depositAmount = 0.5 * LAMPORTS_PER_SOL;
+  const depositIx = new TransactionInstruction({
+    keys: [
+      { pubkey: payer.publicKey, isSigner: true, isWritable: true },
+      { pubkey: depositPda, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    programId: PROGRAM_ID,
+    data: Buffer.from(
+      borsh.serialize(
+        instructionSchema,
+        new InstructionData({ instruction: 1, amount: depositAmount })
+      )
+    ),
+  });
+
+  const depositTx = new Transaction().add(depositIx);
+  try {
+    const txHash = await sendAndConfirmTransaction(connection, depositTx, [
+      payer,
+    ]);
+    console.log(`Deposit transaction: ${txHash}`);
+  } catch (error) {
+    console.error("Error in deposit transaction:", error);
+    return;
+  }
+
+  // Partial Withdraw
+  const withdrawIx = new TransactionInstruction({
+    keys: [
+      { pubkey: payer.publicKey, isSigner: true, isWritable: true },
+      { pubkey: depositPda, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    programId: PROGRAM_ID,
+    data: Buffer.from(
+      borsh.serialize(
+        instructionSchema,
+        new InstructionData({ instruction: 2 })
+      )
+    ),
+  });
+
+  const withdrawTx = new Transaction().add(withdrawIx);
+  try {
+    const txHash = await sendAndConfirmTransaction(connection, withdrawTx, [
+      payer,
+    ]);
+    console.log(`Withdraw transaction: ${txHash}`);
+  } catch (error) {
+    console.error("Error in withdraw transaction:", error);
   }
 }
 
